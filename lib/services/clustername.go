@@ -28,11 +28,14 @@ const ClusterNameSpecSchemaTemplate = `{
 	"type": "object",
 	"additionalProperties": false,
 	"properties": {
-	  "cluster_name": {
-		"type": "string"
-	  }%v
+		"cluster_name": {
+			"type": "string"
+		},
+		"cluster_id": {
+			"type": "string"
+		}%v
 	}
-  }`
+}`
 
 // GetClusterNameSchema returns the schema with optionally injected
 // schema for extensions.

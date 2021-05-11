@@ -299,7 +299,16 @@ func (s *ClusterConfigurationService) SetClusterConfig(c services.ClusterConfig)
 	if c.HasAuthFields() {
 		return trace.BadParameter("cluster config has legacy auth fields, call SetAuthPreference to set these fields")
 	}
+	if c.GetLegacyClusterID() != "" {
+		return trace.BadParameter("cluster config has legacy cluster ID set, call SetClusterName to set this field")
+	}
 
+	return s.ForceSetClusterConfig(c)
+}
+
+// ForceSetClusterConfig sets services.ClusterConfig on the backend
+// without legacy field checks.
+func (s *ClusterConfigurationService) ForceSetClusterConfig(c services.ClusterConfig) error {
 	value, err := services.MarshalClusterConfig(c)
 	if err != nil {
 		return trace.Wrap(err)

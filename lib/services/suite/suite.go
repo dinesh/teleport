@@ -1140,6 +1140,7 @@ func CollectOptions(opts ...Option) Options {
 }
 
 // ClusterConfig tests cluster configuration
+// TODO in 8.0.0: Test only the individual resources.
 func (s *ServicesTestSuite) ClusterConfig(c *check.C, opts ...Option) {
 	auditConfig, err := types.NewClusterAuditConfig(types.ClusterAuditConfigSpecV2{
 		Region:           "us-west-1",
@@ -1151,7 +1152,6 @@ func (s *ServicesTestSuite) ClusterConfig(c *check.C, opts ...Option) {
 	err = s.ConfigS.SetClusterAuditConfig(context.TODO(), auditConfig)
 	c.Assert(err, check.IsNil)
 
-	// DELETE IN 8.0.0
 	netConfig, err := types.NewClusterNetworkingConfig(types.ClusterNetworkingConfigSpecV2{
 		ClientIdleTimeout: services.NewDuration(17 * time.Second),
 	})
@@ -1159,7 +1159,6 @@ func (s *ServicesTestSuite) ClusterConfig(c *check.C, opts ...Option) {
 	err = s.ConfigS.SetClusterNetworkingConfig(context.TODO(), netConfig)
 	c.Assert(err, check.IsNil)
 
-	// DELETE IN 8.0.0
 	recConfig, err := types.NewSessionRecordingConfig(types.SessionRecordingConfigSpecV2{
 		Mode: services.RecordAtProxy,
 	})
@@ -1167,7 +1166,6 @@ func (s *ServicesTestSuite) ClusterConfig(c *check.C, opts ...Option) {
 	err = s.ConfigS.SetSessionRecordingConfig(context.TODO(), recConfig)
 	c.Assert(err, check.IsNil)
 
-	// DELETE IN 8.0.0
 	authPref, err := services.NewAuthPreference(services.AuthPreferenceSpecV2{
 		DisconnectExpiredCert: services.NewBoolOption(true),
 	})
@@ -1175,11 +1173,7 @@ func (s *ServicesTestSuite) ClusterConfig(c *check.C, opts ...Option) {
 	err = s.ConfigS.SetAuthPreference(authPref)
 	c.Assert(err, check.IsNil)
 
-	config, err := services.NewClusterConfig(services.ClusterConfigSpecV3{
-		ClusterID: "27",
-	})
-	c.Assert(err, check.IsNil)
-
+	config := services.DefaultClusterConfig()
 	err = s.ConfigS.SetClusterConfig(config)
 	c.Assert(err, check.IsNil)
 
@@ -1202,12 +1196,15 @@ func (s *ServicesTestSuite) ClusterConfig(c *check.C, opts ...Option) {
 
 	_, err = s.ConfigS.GetClusterConfig()
 	fixtures.ExpectNotFound(c, err)
+}
 
+// ClusterName tests cluster name
+func (s *ServicesTestSuite) ClusterName(c *check.C, opts ...Option) {
 	clusterName, err := services.NewClusterName(services.ClusterNameSpecV2{
+		ClusterID:   "27",
 		ClusterName: "example.com",
 	})
 	c.Assert(err, check.IsNil)
-
 	err = s.ConfigS.SetClusterName(clusterName)
 	c.Assert(err, check.IsNil)
 
