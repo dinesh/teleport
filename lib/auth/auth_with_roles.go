@@ -2281,7 +2281,7 @@ func (a *ServerWithRoles) SetClusterNetworkingConfig(ctx context.Context, newNet
 	return a.authServer.SetClusterNetworkingConfig(ctx, newNetConfig)
 }
 
-// ResetClusterNetworkingConfig resets cluster auth preference to defaults.
+// ResetClusterNetworkingConfig resets cluster networking configuration to defaults.
 func (a *ServerWithRoles) ResetClusterNetworkingConfig(ctx context.Context) error {
 	storedAuthPref, err := a.authServer.GetClusterNetworkingConfig(ctx)
 	if err != nil {
