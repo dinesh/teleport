@@ -524,6 +524,29 @@ func (c *netConfigCollection) writeText(w io.Writer) error {
 	return trace.Wrap(err)
 }
 
+type recConfigCollection struct {
+	recConfigs []types.SessionRecordingConfig
+}
+
+func (c *recConfigCollection) resources() (r []services.Resource) {
+	for _, resource := range c.recConfigs {
+		r = append(r, resource)
+	}
+	return r
+}
+
+func (c *recConfigCollection) writeText(w io.Writer) error {
+	t := asciitable.MakeTable([]string{"Mode", "Proxy Checks Host Keys"})
+	for _, recConfig := range c.recConfigs {
+		t.AddRow([]string{
+			recConfig.GetMode(),
+			strconv.FormatBool(recConfig.GetProxyChecksHostKeys()),
+		})
+	}
+	_, err := t.AsBuffer().WriteTo(w)
+	return trace.Wrap(err)
+}
+
 type dbCollection struct {
 	servers []types.DatabaseServer
 }

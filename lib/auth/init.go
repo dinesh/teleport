@@ -244,7 +244,7 @@ func Init(cfg InitConfig, opts ...ServerOption) (*Server, error) {
 		return nil, trace.Wrap(err)
 	}
 
-	err = asrv.SetSessionRecordingConfig(ctx, cfg.SessionRecordingConfig)
+	err = initSetSessionRecordingConfig(ctx, asrv, cfg.SessionRecordingConfig)
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
@@ -532,6 +532,26 @@ func initSetClusterNetworkingConfig(ctx context.Context, asrv *Server, newNetCon
 	}
 	if shouldReplace {
 		if err := asrv.SetClusterNetworkingConfig(ctx, newNetConfig); err != nil {
+			return trace.Wrap(err)
+		}
+		log.Infof("Updating cluster networking configuration: %v.", newNetConfig)
+	}
+	return nil
+}
+
+func initSetSessionRecordingConfig(ctx context.Context, asrv *Server, newNetConfig types.SessionRecordingConfig) error {
+	storedNetConfig, err := asrv.GetSessionRecordingConfig(ctx)
+	if err != nil {
+		if !trace.IsNotFound(err) {
+			return trace.Wrap(err)
+		}
+	}
+	shouldReplace, err := shouldInitReplaceResourceWithOrigin(storedNetConfig, newNetConfig)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	if shouldReplace {
+		if err := asrv.SetSessionRecordingConfig(ctx, newNetConfig); err != nil {
 			return trace.Wrap(err)
 		}
 		log.Infof("Updating cluster networking configuration: %v.", newNetConfig)

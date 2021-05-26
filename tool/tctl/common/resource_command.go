@@ -90,6 +90,7 @@ func (rc *ResourceCommand) Initialize(app *kingpin.Application, config *service.
 		services.KindCertAuthority:         rc.createCertAuthority,
 		services.KindClusterAuthPreference: rc.createAuthPreference,
 		types.KindClusterNetworkingConfig:  rc.createClusterNetworkingConfig,
+		types.KindSessionRecordingConfig:   rc.createSessionRecordingConfig,
 	}
 	rc.config = config
 
@@ -476,11 +477,43 @@ func (rc *ResourceCommand) createClusterNetworkingConfig(client auth.ClientI, ra
 	return nil
 }
 
+// createSessionRecordingConfig implements `tctl create recconfig.yaml` command.
+func (rc *ResourceCommand) createSessionRecordingConfig(client auth.ClientI, raw services.UnknownResource) error {
+	ctx := context.TODO()
+
+	newRecConfig, err := services.UnmarshalSessionRecordingConfig(raw.Raw)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	storedRecConfig, err := client.GetSessionRecordingConfig(ctx)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	exists := storedRecConfig.Origin() != types.OriginDefaults
+	if !rc.force && exists {
+		return trace.AlreadyExists("non-default session recording configuration already exists")
+	}
+
+	managedByStaticConfig := storedRecConfig.Origin() == types.OriginConfigFile
+	if !rc.confirm && managedByStaticConfig {
+		return trace.BadParameter(managedByStaticCreateMsg)
+	}
+
+	if err := client.SetSessionRecordingConfig(ctx, newRecConfig); err != nil {
+		return trace.Wrap(err)
+	}
+	fmt.Printf("session recording configuration has been updated\n")
+	return nil
+}
+
 // Delete deletes resource by name
 func (rc *ResourceCommand) Delete(client auth.ClientI) (err error) {
 	singletonResources := []string{
 		services.KindClusterAuthPreference,
 		types.KindClusterNetworkingConfig,
+		types.KindSessionRecordingConfig,
 	}
 	if !utils.SliceContainsStr(singletonResources, rc.ref.Kind) && (rc.ref.Kind == "" || rc.ref.Name == "") {
 		return trace.BadParameter("provide a full resource name to delete, for example:\n$ tctl rm cluster/east\n")
@@ -563,6 +596,11 @@ func (rc *ResourceCommand) Delete(client auth.ClientI) (err error) {
 			return trace.Wrap(err)
 		}
 		fmt.Printf("cluster networking configuration has been reset to defaults\n")
+	case types.KindSessionRecordingConfig:
+		if err = resetSessionRecordingConfig(ctx, client); err != nil {
+			return trace.Wrap(err)
+		}
+		fmt.Printf("cluster networking configuration has been reset to defaults\n")
 	default:
 		return trace.BadParameter("deleting resources of type %q is not supported", rc.ref.Kind)
 	}
@@ -595,6 +633,20 @@ func resetClusterNetworkingConfig(ctx context.Context, client auth.ClientI) erro
 	}
 
 	return trace.Wrap(client.ResetClusterNetworkingConfig(ctx))
+}
+
+func resetSessionRecordingConfig(ctx context.Context, client auth.ClientI) error {
+	storedRecConfig, err := client.GetSessionRecordingConfig(ctx)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	managedByStaticConfig := storedRecConfig.Origin() == types.OriginConfigFile
+	if managedByStaticConfig {
+		return trace.BadParameter(managedByStaticDeleteMsg)
+	}
+
+	return trace.Wrap(client.ResetSessionRecordingConfig(ctx))
 }
 
 // Update updates select resource fields: expiry and labels
@@ -886,6 +938,16 @@ func (rc *ResourceCommand) getCollection(client auth.ClientI) (ResourceCollectio
 		}
 		netConfigs := []types.ClusterNetworkingConfig{netConfig}
 		return &netConfigCollection{netConfigs: netConfigs}, nil
+	case types.KindSessionRecordingConfig:
+		if rc.ref.Name != "" {
+			return nil, trace.BadParameter("only simple `tctl get %v` can be used", types.KindSessionRecordingConfig)
+		}
+		recConfig, err := client.GetSessionRecordingConfig(ctx)
+		if err != nil {
+			return nil, trace.Wrap(err)
+		}
+		recConfigs := []types.SessionRecordingConfig{recConfig}
+		return &recConfigCollection{recConfigs: recConfigs}, nil
 	}
 	return nil, trace.BadParameter("getting %q is not supported", rc.ref.String())
 }

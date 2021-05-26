@@ -318,7 +318,7 @@ func (s *IntSuite) TestAuditOn(c *check.C) {
 			})
 			c.Assert(err, check.IsNil, comment)
 
-			recConfig, err := types.NewSessionRecordingConfig(types.SessionRecordingConfigSpecV2{
+			recConfig, err := types.NewSessionRecordingConfigFromConfigFile(types.SessionRecordingConfigSpecV2{
 				Mode: tt.inRecordLocation,
 			})
 			c.Assert(err, check.IsNil, comment)
@@ -1171,7 +1171,7 @@ func (s *IntSuite) runDisconnectTest(c *check.C, tc disconnectTestCase) {
 	})
 	c.Assert(err, check.IsNil, comment)
 
-	recConfig, err := types.NewSessionRecordingConfig(types.SessionRecordingConfigSpecV2{
+	recConfig, err := types.NewSessionRecordingConfigFromConfigFile(types.SessionRecordingConfigSpecV2{
 		Mode: tc.recordingMode,
 	})
 	c.Assert(err, check.IsNil, comment)
@@ -1390,7 +1390,7 @@ func (s *IntSuite) twoClustersTunnel(c *check.C, now time.Time, proxyRecordMode 
 	a.AddUser(username, []string{username})
 	b.AddUser(username, []string{username})
 
-	recConfig, err := types.NewSessionRecordingConfig(types.SessionRecordingConfigSpecV2{
+	recConfig, err := types.NewSessionRecordingConfigFromConfigFile(types.SessionRecordingConfigSpecV2{
 		Mode: proxyRecordMode,
 	})
 	c.Assert(err, check.IsNil)
@@ -2950,7 +2950,7 @@ func (s *IntSuite) TestExternalClient(c *check.C) {
 	for _, tt := range tests {
 		// Create a Teleport instance with auth, proxy, and node.
 		makeConfig := func() (*check.C, []string, []*InstanceSecrets, *service.Config) {
-			recConfig, err := types.NewSessionRecordingConfig(types.SessionRecordingConfigSpecV2{
+			recConfig, err := types.NewSessionRecordingConfigFromConfigFile(types.SessionRecordingConfigSpecV2{
 				Mode: tt.inRecordLocation,
 			})
 			c.Assert(err, check.IsNil)
@@ -3044,7 +3044,7 @@ func (s *IntSuite) TestControlMaster(c *check.C) {
 
 		// Create a Teleport instance with auth, proxy, and node.
 		makeConfig := func() (*check.C, []string, []*InstanceSecrets, *service.Config) {
-			recConfig, err := types.NewSessionRecordingConfig(types.SessionRecordingConfigSpecV2{
+			recConfig, err := types.NewSessionRecordingConfigFromConfigFile(types.SessionRecordingConfigSpecV2{
 				Mode: tt.inRecordLocation,
 			})
 			c.Assert(err, check.IsNil)
@@ -3143,7 +3143,7 @@ func (s *IntSuite) TestProxyHostKeyCheck(c *check.C) {
 
 		// create a teleport instance with auth, proxy, and node
 		makeConfig := func() (*check.C, []string, []*InstanceSecrets, *service.Config) {
-			recConfig, err := types.NewSessionRecordingConfig(types.SessionRecordingConfigSpecV2{
+			recConfig, err := types.NewSessionRecordingConfigFromConfigFile(types.SessionRecordingConfigSpecV2{
 				Mode:                services.RecordAtProxy,
 				ProxyChecksHostKeys: types.NewBoolOption(tt.inHostKeyCheck),
 			})
@@ -3194,7 +3194,7 @@ func (s *IntSuite) TestAuditOff(c *check.C) {
 
 	// create a teleport instance with auth, proxy, and node
 	makeConfig := func() (*check.C, []string, []*InstanceSecrets, *service.Config) {
-		recConfig, err := types.NewSessionRecordingConfig(types.SessionRecordingConfigSpecV2{
+		recConfig, err := types.NewSessionRecordingConfigFromConfigFile(types.SessionRecordingConfigSpecV2{
 			Mode: services.RecordOff,
 		})
 		c.Assert(err, check.IsNil)
@@ -4330,7 +4330,7 @@ func (s *IntSuite) TestList(c *check.C) {
 
 	// Create and start a Teleport cluster with auth, proxy, and node.
 	makeConfig := func() (*check.C, []string, []*InstanceSecrets, *service.Config) {
-		recConfig, err := types.NewSessionRecordingConfig(types.SessionRecordingConfigSpecV2{
+		recConfig, err := types.NewSessionRecordingConfigFromConfigFile(types.SessionRecordingConfigSpecV2{
 			Mode: services.RecordOff,
 		})
 		c.Assert(err, check.IsNil)
@@ -4477,7 +4477,7 @@ func (s *IntSuite) TestCmdLabels(c *check.C) {
 
 	// Create and start a Teleport cluster with auth, proxy, and node.
 	makeConfig := func() *service.Config {
-		recConfig, err := types.NewSessionRecordingConfig(types.SessionRecordingConfigSpecV2{
+		recConfig, err := types.NewSessionRecordingConfigFromConfigFile(types.SessionRecordingConfigSpecV2{
 			Mode: services.RecordOff,
 		})
 		c.Assert(err, check.IsNil)
@@ -4644,7 +4644,7 @@ func (s *IntSuite) TestBPFInteractive(c *check.C) {
 
 		// Create and start a Teleport cluster.
 		makeConfig := func() (*check.C, []string, []*InstanceSecrets, *service.Config) {
-			recConfig, err := types.NewSessionRecordingConfig(types.SessionRecordingConfigSpecV2{
+			recConfig, err := types.NewSessionRecordingConfigFromConfigFile(types.SessionRecordingConfigSpecV2{
 				Mode: tt.inSessionRecording,
 			})
 			c.Assert(err, check.IsNil)
@@ -4771,7 +4771,7 @@ func (s *IntSuite) TestBPFExec(c *check.C) {
 
 		// Create and start a Teleport cluster.
 		makeConfig := func() (*check.C, []string, []*InstanceSecrets, *service.Config) {
-			recConfig, err := types.NewSessionRecordingConfig(types.SessionRecordingConfigSpecV2{
+			recConfig, err := types.NewSessionRecordingConfigFromConfigFile(types.SessionRecordingConfigSpecV2{
 				Mode: tt.inSessionRecording,
 			})
 			c.Assert(err, check.IsNil)
@@ -4852,7 +4852,7 @@ func (s *IntSuite) TestBPFSessionDifferentiation(c *check.C) {
 
 	// Create and start a Teleport cluster.
 	makeConfig := func() (*check.C, []string, []*InstanceSecrets, *service.Config) {
-		recConfig, err := types.NewSessionRecordingConfig(types.SessionRecordingConfigSpecV2{
+		recConfig, err := types.NewSessionRecordingConfigFromConfigFile(types.SessionRecordingConfigSpecV2{
 			Mode: services.RecordAtNode,
 		})
 		c.Assert(err, check.IsNil)
