@@ -584,12 +584,12 @@ func resetAuthPreference(ctx context.Context, client auth.ClientI) error {
 }
 
 func resetClusterNetworkingConfig(ctx context.Context, client auth.ClientI) error {
-	storedAuthPref, err := client.GetClusterNetworkingConfig(ctx)
+	storedNetConfig, err := client.GetClusterNetworkingConfig(ctx)
 	if err != nil {
 		return trace.Wrap(err)
 	}
 
-	managedByStaticConfig := storedAuthPref.Origin() == types.OriginConfigFile
+	managedByStaticConfig := storedNetConfig.Origin() == types.OriginConfigFile
 	if managedByStaticConfig {
 		return trace.BadParameter(managedByStaticDeleteMsg)
 	}
