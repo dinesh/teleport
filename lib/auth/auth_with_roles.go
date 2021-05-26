@@ -2283,11 +2283,11 @@ func (a *ServerWithRoles) SetClusterNetworkingConfig(ctx context.Context, newNet
 
 // ResetClusterNetworkingConfig resets cluster networking configuration to defaults.
 func (a *ServerWithRoles) ResetClusterNetworkingConfig(ctx context.Context) error {
-	storedAuthPref, err := a.authServer.GetClusterNetworkingConfig(ctx)
+	storedNetConfig, err := a.authServer.GetClusterNetworkingConfig(ctx)
 	if err != nil {
 		return trace.Wrap(err)
 	}
-	if storedAuthPref.Origin() == types.OriginConfigFile {
+	if storedNetConfig.Origin() == types.OriginConfigFile {
 		return trace.BadParameter("config-file configuration cannot be reset")
 	}
 
