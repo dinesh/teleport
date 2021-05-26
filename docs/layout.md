@@ -157,5 +157,5 @@ The documentation layout and structure is presently:
     - [x] Teleport Proxy
     - [x] Trusted Clusters
     - [ ] Security - new Article
-- [ ] Preview Section
-    - [ ] Upcoming Releases
+- [x] Preview Section
+    - [x] Upcoming Releases
