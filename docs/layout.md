@@ -20,7 +20,7 @@ It also describes all article subsections and video content in one quick view to
 ### Products Supported
 
 Our current Product and Reference Documentation topics are divided into thirteen (13) sections supporting the four (4) main products:
-å
+
 1. Teleport Application Access
 2. Teleport Server Access
 3. Teleport Database Access
@@ -72,6 +72,7 @@ The documentation layout and structure is presently:
     - [x] PAM
     - [x] OpenSSH
     - [ ] Enhanced Session Recording (moved from Features)
+    - [ ] Resource Catalog/Introspection (move all introspection, management items into here)
 - [x] Kubernetes Access
     - [x] Introduction
     - [x] Getting Started
@@ -129,7 +130,9 @@ The documentation layout and structure is presently:
         - [x] Per-session MFA
         - [x] Dual Authorization
         - [x] Impersonation
-        - [ ] Access Requests (New)
+        - [ ] Access Requests (New, presumable general guide or landing page to the others)
+        - [ ] Identity Managment (New, I propose we move all the certificate management items into here)
+        - [ ] SSO Access (New, presumable general guide or landing page to the others - we can maybe put general steps in here and wrap or direct to 3rd party provider specific steps)
     - [ ] Single Sign-On (SSO) - moved from Enterprise
         - [x] Single Sign-On (SSO)
         - [x] Azure Active Directory (AD)
