@@ -19,7 +19,6 @@ package local
 import (
 	"bytes"
 	"context"
-	"sort"
 
 	"github.com/gravitational/teleport/api/types"
 	"github.com/gravitational/teleport/lib/backend"
@@ -123,10 +122,6 @@ func (e *EventsService) NewWatcher(ctx context.Context, watch services.Watch) (s
 		prefixes = append(prefixes, parser.prefixes()...)
 		parsers = append(parsers, parser)
 	}
-	// sort so that longer prefixes get first
-	sort.Slice(parsers, func(i, j int) bool {
-		return len(bytes.Join(parsers[i].prefixes(), nil)) > len(bytes.Join(parsers[j].prefixes(), nil))
-	})
 	w, err := e.backend.NewWatcher(ctx, backend.Watch{
 		Name:            watch.Name,
 		Prefixes:        prefixes,
