@@ -211,7 +211,7 @@ func (l *FileLog) SearchEvents(fromUTC, toUTC time.Time, namespace string, event
 	if err != nil {
 		return nil, "", trace.Wrap(err)
 	}
-	foundFirst := startKey == ""
+	foundStart := startKey == ""
 	var lastReadKey string
 	var newStartKey string
 	dynamicEvents := make([]EventFields, 0)
@@ -231,12 +231,12 @@ func (l *FileLog) SearchEvents(fromUTC, toUTC time.Time, namespace string, event
 		for _, foundEvent := range found {
 			eventID := foundEvent.GetString(EventID)
 
-			if !foundFirst {
+			if !foundStart {
 				if startKey == eventID {
-					foundFirst = true
-				} else {
-					continue
+					foundStart = true
 				}
+
+				continue
 			}
 
 			lastReadKey = eventID
