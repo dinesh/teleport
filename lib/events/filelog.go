@@ -207,26 +207,49 @@ func (l *FileLog) SearchEvents(fromUTC, toUTC time.Time, namespace string, event
 	if days < 0 {
 		return nil, "", trace.BadParameter("invalid days")
 	}
-	filtered, err := l.matchingFiles(fromUTC, toUTC)
+	filesToSearch, err := l.matchingFiles(fromUTC, toUTC)
 	if err != nil {
 		return nil, "", trace.Wrap(err)
 	}
-	foundStart := startKey == ""
-	var total int
-	var lastKey string
-	// search within each file:
+	foundFirst := startKey == ""
+	var lastReadKey string
+	var newStartKey string
 	dynamicEvents := make([]EventFields, 0)
-	for i := range filtered {
+	// search within each file:
+	for _, file := range filesToSearch {
 		var found []EventFields
-		found, lastKey, foundStart, err = l.findInFile(filtered[i].path, eventTypes, &total, limit, startKey, foundStart)
+		subLimit := 0
+		if limit > 0 {
+			subLimit = limit - len(dynamicEvents)
+		}
+
+		found, hitLimit, err := l.findInFile(file.path, eventTypes, subLimit)
 		if err != nil {
 			return nil, "", trace.Wrap(err)
 		}
-		dynamicEvents = append(dynamicEvents, found...)
-		if limit > 0 && total >= limit {
+
+		for _, foundEvent := range found {
+			eventID := foundEvent.GetString(EventID)
+
+			if !foundFirst {
+				if startKey == eventID {
+					foundFirst = true
+				} else {
+					continue
+				}
+			}
+
+			lastReadKey = eventID
+			dynamicEvents = append(dynamicEvents, foundEvent)
+		}
+
+		if hitLimit || (limit > 0 && len(dynamicEvents) >= limit) {
+			// Set the returned start key since there are more events to scan.
+			newStartKey = lastReadKey
 			break
 		}
 	}
+
 	// sort all accepted files by timestamp or by event index
 	// in case if events are associated with the same session, to make
 	// sure that events are not displayed out of order in case of multiple
@@ -242,7 +265,7 @@ func (l *FileLog) SearchEvents(fromUTC, toUTC time.Time, namespace string, event
 		events = append(events, event)
 	}
 
-	return events, lastKey, nil
+	return events, newStartKey, nil
 }
 
 func (l *FileLog) SearchSessionEvents(fromUTC, toUTC time.Time, limit int, startKey string) ([]AuditEvent, string, error) {
@@ -475,16 +498,17 @@ func parseFileTime(filename string) (time.Time, error) {
 
 // findInFile scans a given log file and returns events that fit the criteria
 // This simplistic implementation ONLY SEARCHES FOR EVENT TYPE(s)
-func (l *FileLog) findInFile(fn string, eventFilter []string, total *int, limit int, startKey string, foundStart bool) ([]EventFields, string, bool, error) {
+func (l *FileLog) findInFile(fn string, eventFilter []string, limit int) ([]EventFields, bool, error) {
 	l.Debugf("Called findInFile(%s, %v).", fn, eventFilter)
 	retval := make([]EventFields, 0)
-	var lastKey string
 	doFilter := len(eventFilter) > 0
+	total := 0
+	hitLimit := false
 
 	// open the log file:
 	lf, err := os.OpenFile(fn, os.O_RDONLY, 0)
 	if err != nil {
-		return nil, "", false, trace.Wrap(err)
+		return nil, false, trace.Wrap(err)
 	}
 	defer lf.Close()
 
@@ -517,21 +541,16 @@ func (l *FileLog) findInFile(fn string, eventFilter []string, total *int, limit 
 			}
 		}
 
-		id := ef.GetString(EventID)
-		if id == startKey {
-			foundStart = true
-		}
-
-		if (accepted || !doFilter) && foundStart {
+		if accepted || !doFilter {
 			retval = append(retval, ef)
-			lastKey = id
-			*total++
-			if limit > 0 && *total >= limit {
+			total++
+			if limit > 0 && total >= limit {
+				hitLimit = true
 				break
 			}
 		}
 	}
-	return retval, lastKey, foundStart, nil
+	return retval, hitLimit, nil
 }
 
 type eventFile struct {
