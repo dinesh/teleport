@@ -194,7 +194,7 @@ func (l *FileLog) EmitAuditEventLegacy(event Event, fields EventFields) error {
 	return nil
 }
 
-func (l *FileLog) SearchEvents(fromUTC, toUTC time.Time, namespace string, eventTypes []string, limit int, startKey string) ([]AuditEvent, string, error) {
+func (l *FileLog) SearchEvents(fromUTC, toUTC time.Time, namespace string, eventTypes []string, limit int, startAfter string) ([]AuditEvent, string, error) {
 	l.Debugf("SearchEvents(%v, %v, namespace=%v, eventType=%v, limit=%v)", fromUTC, toUTC, namespace, eventTypes, limit)
 	if limit <= 0 {
 		limit = defaults.EventsIterationLimit
@@ -213,51 +213,44 @@ func (l *FileLog) SearchEvents(fromUTC, toUTC time.Time, namespace string, event
 		return nil, "", trace.Wrap(err)
 	}
 
-	// If the start key is zero we don't need to perform any skipping.
-	// The "start" of the events we want to scan has already been found.
-	foundStart := startKey == ""
-
 	// lastReadKey contains the ID of the last read event ID.
 	var lastReadKey string
 
-	// newStartKey is the start key to be returned. By default we assume
+	// newStartAfter is the start key to be returned. By default we assume
 	// that all relevant events were returned in one query and therefore we initialize it to empty.
 	// If we do return early because we hit the provided iteration limit we set this to the lastReadKey.
-	var newStartKey string
+	var newStartAfter string
 
 	dynamicEvents := make([]EventFields, 0)
 
 	// search within each file:
 	for _, file := range filesToSearch {
-		var found []EventFields
 		subLimit := 0
 		if limit > 0 {
 			subLimit = limit - len(dynamicEvents)
 		}
 
-		found, hitLimit, err := l.findInFile(file.path, eventTypes, subLimit)
+		eventsFromFile, foundStart, err := l.findInFile(file.path, eventTypes, subLimit, startAfter)
 		if err != nil {
 			return nil, "", trace.Wrap(err)
 		}
 
-		for _, foundEvent := range found {
-			eventID := foundEvent.GetString(EventID)
-
-			if !foundStart {
-				if startKey == eventID {
-					foundStart = true
-				}
-
-				continue
-			}
-
-			lastReadKey = eventID
-			dynamicEvents = append(dynamicEvents, foundEvent)
+		if foundStart {
+			startAfter = ""
 		}
 
-		if hitLimit || (limit > 0 && len(dynamicEvents) >= limit) {
+		for _, foundEvent := range eventsFromFile {
+			eventID := foundEvent.GetString(EventID)
+
+			if foundStart {
+				lastReadKey = eventID
+				dynamicEvents = append(dynamicEvents, foundEvent)
+			}
+		}
+
+		if len(eventsFromFile) == subLimit || (limit > 0 && len(dynamicEvents) >= limit) {
 			// Set the returned start key since there are more events to scan.
-			newStartKey = lastReadKey
+			newStartAfter = lastReadKey
 			break
 		}
 	}
@@ -277,7 +270,7 @@ func (l *FileLog) SearchEvents(fromUTC, toUTC time.Time, namespace string, event
 		events = append(events, event)
 	}
 
-	return events, newStartKey, nil
+	return events, newStartAfter, nil
 }
 
 func (l *FileLog) SearchSessionEvents(fromUTC, toUTC time.Time, limit int, startKey string) ([]AuditEvent, string, error) {
@@ -510,7 +503,7 @@ func parseFileTime(filename string) (time.Time, error) {
 
 // findInFile scans a given log file and returns events that fit the criteria
 // This simplistic implementation ONLY SEARCHES FOR EVENT TYPE(s)
-func (l *FileLog) findInFile(fn string, eventFilter []string, limit int) ([]EventFields, bool, error) {
+func (l *FileLog) findInFile(fn string, eventFilter []string, limit int, startAfter string) ([]EventFields, bool, error) {
 	l.Debugf("Called findInFile(%s, %v).", fn, eventFilter)
 	retval := make([]EventFields, 0)
 	doFilter := len(eventFilter) > 0
@@ -526,13 +519,9 @@ func (l *FileLog) findInFile(fn string, eventFilter []string, limit int) ([]Even
 	// for each line...
 	scanner := bufio.NewScanner(lf)
 
-	lastScan := false
-	advanceScanner := func() bool {
-		lastScan = scanner.Scan()
-		return lastScan
-	}
+	foundStart := startAfter == ""
 
-	for lineNo := 0; advanceScanner(); lineNo++ {
+	for lineNo := 0; scanner.Scan(); lineNo++ {
 		accepted := false
 		// optimization: to avoid parsing JSON unnecessarily, lets see if we
 		// can filter out lines that don't even have the requested event type on the line
@@ -559,7 +548,14 @@ func (l *FileLog) findInFile(fn string, eventFilter []string, limit int) ([]Even
 			}
 		}
 
-		if accepted || !doFilter {
+		if !foundStart {
+			if startAfter == ef.GetString(EventID) {
+				foundStart = true
+				continue
+			}
+		}
+
+		if foundStart && (accepted || !doFilter) {
 			retval = append(retval, ef)
 			total++
 			if limit > 0 && total >= limit {
@@ -568,7 +564,7 @@ func (l *FileLog) findInFile(fn string, eventFilter []string, limit int) ([]Even
 		}
 	}
 
-	return retval, lastScan, nil
+	return retval, foundStart, nil
 }
 
 type eventFile struct {
